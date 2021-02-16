@@ -332,15 +332,26 @@ function execute(session::GoogleSession, resource::APIResource, method::APIMetho
     # if response is JSON, parse and return. otherwise, just dump data
     # HTTP response header type is Vector{Pair{String,String}}
     # https://github.com/JuliaWeb/HTTP.jl/blob/master/src/Messages.jl#L166
-    if headercontains(res, "Content-Type", "application/json")
-        if headercontains(res, "Content-Length", "0")
+    content_type = header(res, "Content-Type")
+    content_length = header(res, "Content-Length", "0")
+    result, status = res.body, res.status
+    if startswith(content_type, "application/json")
+        if content_length == "0"
             return HTTP.nobody
         end
 
-        result = JSON.parse(read(IOBuffer(res.body), String); dicttype=Dict{Symbol, Any})
-        return raw || (res.status >= 400) ? result : method.transform(result, resource.transform)
+        result = JSON.parse(read(IOBuffer(result), String); dicttype=Dict{Symbol, Any})
+        return raw || (status >= 400) ? result : method.transform(result, resource.transform)
+
+    elseif startswith(content_type, "text/plain")
+        if content_length == "0"
+            return HTTP.nobody
+        end
+
+        result = read(IOBuffer(result), String)  # TODO: handle charsets
+        return status == 200 ? result : Dict{Symbol, Any}(:error =>
+                            Dict{Symbol, Any}(:message => result, :code => status))
     else
-        result, status = res.body, res.status
         return status == 200 ? result : Dict{Symbol, Any}(:error =>
                             Dict{Symbol, Any}(:message => result, :code => status))
     end
