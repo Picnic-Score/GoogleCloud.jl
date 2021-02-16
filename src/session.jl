@@ -6,10 +6,10 @@ module session
 export GoogleSession, authorize
 
 import Base: string, print, show
-using Dates, Base64 
+using Dates, Base64
 
 #using Requests
-using HTTP, HTTP.Messages 
+using HTTP, HTTP.Messages
 
 import JSON
 import MbedTLS
@@ -141,7 +141,7 @@ function JWS(credentials::JSONCredentials, claimset::JWTClaimSet, header::JWTHea
     "$payload.$signature"
 end
 
-function token(credentials::JSONCredentials, 
+function token(credentials::JSONCredentials,
                scopes::AbstractVector{<: AbstractString})
     # construct claim-set from service account email and requested scopes
     claimset = JWTClaimSet(credentials.client_email, scopes)
@@ -173,6 +173,10 @@ Get OAuth 2.0 authorisation token from Google.
 If `cache` set to `true`, get a new token only if the existing token has expired.
 """
 function authorize(session::GoogleSession; cache::Bool=true)
+    if isa(session.credentials, AnonymousCredentials)
+        return nothing
+    end
+
     # don't get a new token if a non-expired one exists
     if cache && (session.expiry >= now(UTC)) && !isempty(session.authorization)
         return session.authorization

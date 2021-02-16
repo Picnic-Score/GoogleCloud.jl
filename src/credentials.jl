@@ -3,7 +3,7 @@ Google Cloud Platform service-account API credentials.
 """
 module credentials
 
-export Credentials, JSONCredentials, MetadataCredentials
+export Credentials, AnonymousCredentials, JSONCredentials, MetadataCredentials
 
 import Base: show, print
 import JSON
@@ -16,6 +16,12 @@ using ..error
 using ..root
 
 abstract type Credentials end
+
+
+struct AnonymousCredentials <: Credentials
+    project_id::AbstractString
+end
+
 
 """
 Get credential/service-account information from GCE metadata server
@@ -58,7 +64,7 @@ function Base.get(credentials::MetadataCredentials, path::AbstractString; contex
     if HTTP.Messages.status(res) != 200
         throw(CredentialError("Unable to obtain credentials from metadata server"))
     end
-    String(res.data)
+    String(res.body)
 end
 
 """

@@ -4,10 +4,10 @@ Google Cloud APIs
 module GoogleCloud
 
 export
-    JSONCredentials, MetadataCredentials, GoogleSession, authorize,
+    AnonymousCredentials, JSONCredentials, MetadataCredentials, GoogleSession, authorize,
     set_session!, get_session
 export
-    iam, storage, compute, container, pubsub, logging, datastore
+    iam, storage, secrets, compute, container, pubsub, logging, datastore
 export
     KeyStore, commit!, fetch!, sync!, clearcache!, clearpending!, destroy!, connect!, watch, unwatch
 
@@ -29,6 +29,7 @@ using .collection
 import .api:
     _iam.iam,
     _storage.storage,
+    _secrets.secrets,
     _compute.compute,
     _container.container,
     _pubsub.pubsub,
