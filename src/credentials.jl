@@ -18,9 +18,7 @@ using ..root
 abstract type Credentials end
 
 
-struct AnonymousCredentials <: Credentials
-    project_id::AbstractString
-end
+struct AnonymousCredentials <: Credentials end
 
 
 """

@@ -17,6 +17,7 @@ using Markdown
 using ..session
 using ..error
 using ..root
+using ..credentials
 
 const GZIP_MAGIC_NUMBER = UInt8[0x1f, 0x8b, 0x08]
 
@@ -64,6 +65,12 @@ path_replace(path::AbstractString, values) = reduce(
 """Check if response is/contains an error"""
 iserror(x::AbstractDict{Symbol}) = haskey(x, :error)
 iserror(::Any) = false
+
+
+"""Pull extras from credentials for addition to parameters"""
+credextras(session::GoogleSession{T}) where T <: Credentials = Dict(:project_id => session.credentials.project_id)
+credextras(::GoogleSession{AnonymousCredentials}) = Dict{Symbol, Any}(:project_id => nothing)
+
 
 """
     APIMethod(verb, path, description)
@@ -275,7 +282,7 @@ function execute(session::GoogleSession, resource::APIResource, method::APIMetho
 
     # merge in default parameters and evaluate any expressions
     params = merge!(copy(method.default_params), Dict(params))
-    extra = Dict(:project_id => session.credentials.project_id)
+    extra = credextras(session)
     for (key, val) in params
         if isa(val, Symbol)
             params[key] = extra[val]
