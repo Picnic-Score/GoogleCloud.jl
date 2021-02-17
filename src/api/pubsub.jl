@@ -9,14 +9,11 @@ using ..api
 using ...root
 
 
-const PUBSUB_EMULATOR_HOST = get(ENV, "PUBSUB_EMULATOR_HOST", nothing)
-
-
 """
 Google Pub/Sub API root.
 """
 pubsub = APIRoot(
-    "$(PUBSUB_EMULATOR_HOST === nothing ? "https://pubsub.googleapis.com" : "http://$PUBSUB_EMULATOR_HOST")/v1/projects/{project}",
+    "https://pubsub.googleapis.com/v1/projects/{project}",
     Dict(
         "cloud-platform" => "Full access to all resources and services in the specified Cloud Platform project.",
         "pubsub" => "View and manage Pub/Sub topics and subscriptions",

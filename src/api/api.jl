@@ -9,6 +9,7 @@ using Dates, Base64
 
 using HTTP
 using HTTP.Messages
+using URIs
 import MbedTLS
 import Libz
 import JSON
@@ -69,7 +70,7 @@ iserror(::Any) = false
 
 """Pull extras from credentials for addition to parameters"""
 credextras(session::GoogleSession{T}) where T <: Credentials = Dict(:project_id => session.credentials.project_id)
-credextras(::GoogleSession{AnonymousCredentials}) = Dict{Symbol, Any}(:project_id => nothing)
+credextras(::GoogleSession{AnonymousCredentials}) = Dict{Symbol, Any}(:project_id => "")
 
 
 """
@@ -226,6 +227,18 @@ function (api::APIRoot)(resource_name::Symbol, method_name::Symbol, args...; kwa
     execute(session, resource, method, args...; kwargs...)
 end
 
+
+function handle_emulation(path::AbstractString, emulation_host::AbstractString)
+    if emulation_host == ""
+        return path
+    end
+
+    url_path = URI(path).path
+    "$emulation_host$url_path"
+end
+handle_emulation(path::AbstractString, ::Nothing) = path
+
+
 """
     execute(session::GoogleSession, resource::APIResource, method::APIMethod,
             path_args::AbstractString...[; ...])
@@ -240,7 +253,7 @@ function execute(session::GoogleSession, resource::APIResource, method::APIMetho
             gzip::Bool=false, content_type::AbstractString="application/json",
             debug::Bool=false, raw::Bool=false,
             max_backoff::TimePeriod=Second(64), max_attempts::Int64=10,
-            require_ssl_verification=true,
+            require_ssl_verification::Bool=true, emulation_host=nothing,
             params...)
     if length(path_args) != path_tokens(method.path) |> length
         throw(APIError("Number of path arguments do not match"))
@@ -289,6 +302,13 @@ function execute(session::GoogleSession, resource::APIResource, method::APIMetho
         end
     end
 
+    # setup our calling path by handling emluation if needed
+    method_path = handle_emulation(method.path, emulation_host)
+    request_uri = path_replace(method_path, path_args)
+    if debug
+        @info "Calling" method.verb request_uri params
+    end
+
     # attempt request until exceeding maximum attempts, backing off exponentially
     res = nothing
     max_backoff = Millisecond(max_backoff)
@@ -298,20 +318,20 @@ function execute(session::GoogleSession, resource::APIResource, method::APIMetho
         end
         res = try
             HTTP.request(string(method.verb),
-                        path_replace(method.path, path_args), headers, data;
+                        request_uri, headers, data;
                         query=params, require_ssl_verification=require_ssl_verification)
         catch e
-        #    if isa(e, Base.IOError) &&
-        #        e.code in (Base.UV_ECONNRESET, Base.UV_ECONNREFUSED, Base.UV_ECONNABORTED,
-        #                   Base.UV_EPIPE, Base.UV_ETIMEDOUT)
-        #    elseif isa(e, MbedTLS.MbedException) &&
-        #            e.ret in (MbedTLS.MBEDTLS_ERR_SSL_TIMEOUT, MbedTLS.MBEDTLS_ERR_SSL_CONN_EOF)
-        #    else
-        #        println("get a HTTP request error: ", e)
-        #        rethrow(e)
-        #    end
-            println("get a HTTP request error: ", e)
-            rethrow(e)
+            if isa(e, Base.IOError) &&
+                e.code in (Base.UV_ECONNRESET, Base.UV_ECONNREFUSED, Base.UV_ECONNABORTED,
+                           Base.UV_EPIPE, Base.UV_ETIMEDOUT)
+            elseif isa(e, MbedTLS.MbedException) &&
+                    e.ret in (MbedTLS.MBEDTLS_ERR_SSL_TIMEOUT, MbedTLS.MBEDTLS_ERR_SSL_CONN_EOF)
+            else
+                println("get a HTTP request error: ", e)
+                rethrow(e)
+            end
+            # println("get a HTTP request error: ", e)
+            # rethrow(e)
         end
 
         if debug && (res !== nothing)

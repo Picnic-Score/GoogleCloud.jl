@@ -9,14 +9,11 @@ using ..api
 using ...root
 
 
-const STORAGE_EMULATOR_HOST = get(ENV, "STORAGE_EMULATOR_HOST", nothing)
-
-
 """
 Google Cloud Storage API root.
 """
 storage = APIRoot(
-    "$(STORAGE_EMULATOR_HOST === nothing ? API_ROOT : "https://$STORAGE_EMULATOR_HOST")/storage/v1",
+    "$API_ROOT/storage/v1",
     Dict(
         "devstorage.full_control" => "Read/write and ACL management access to Google Cloud Storage",
         "devstorage.read_write" => "Read/write access to Google Cloud Storage",
