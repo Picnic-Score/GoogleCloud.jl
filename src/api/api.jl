@@ -340,7 +340,7 @@ function execute(session::GoogleSession, resource::APIResource, method::APIMetho
     # HTTP response header type is Vector{Pair{String,String}}
     # https://github.com/JuliaWeb/HTTP.jl/blob/master/src/Messages.jl#L166
     content_type = header(res, "Content-Type")
-    content_length = header(res, "Content-Length", "0")
+    content_length = header(res, "Content-Length")
     result, status = res.body, res.status
     if startswith(content_type, "application/json")
         if content_length == "0"
