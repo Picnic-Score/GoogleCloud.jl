@@ -236,7 +236,7 @@ Optionally provide parameters and data (with optional MIME content-type).
 """
 function execute(session::GoogleSession, resource::APIResource, method::APIMethod,
             path_args::AbstractString...;
-            data::Union{AbstractString, AbstractDict, Vector{UInt8}}=HTTP.nobody,
+            data::Any=HTTP.nobody,
             gzip::Bool=false, content_type::AbstractString="application/json",
             debug::Bool=false, raw::Bool=false,
             max_backoff::TimePeriod=Second(64), max_attempts::Int64=10,
